@@ -2,7 +2,13 @@ const loopWhile = require('deasync').loopWhile
 const processor = require('./processor')
 
 module.exports = (css, settings) => {
-  const cssWithPlaceholders = css
+  const cssWithVariablePlaceholders = css.replace(
+    /[:+\-*\,\/a-z(]\s*(%%styled-jsx-placeholder=(\d+)%%)/gi,
+    (match, nativePlaceholder, id) => 
+      match.replace(nativePlaceholder, `var(--styled-jsx-placeholder-${id})`) 
+  );
+  
+  const cssWithCommentPlaceholders = cssWithVariablePlaceholders
     .replace(/%%styled-jsx-placeholder-(\d+)%%/g, (_, id) =>
       `/*%%styled-jsx-placeholder-${id}%%*/`
     )
@@ -14,7 +20,7 @@ module.exports = (css, settings) => {
     wait = false
   }
 
-  processor(cssWithPlaceholders)
+  processor(cssWithCommentPlaceholders)
     .then(resolved)
     .catch(resolved)
   loopWhile(() => wait)
@@ -24,7 +30,12 @@ module.exports = (css, settings) => {
   }
 
   return processedCss
-    .replace(/\/\*%%styled-jsx-placeholder-(\d+)%%\*\//g, (_, id) =>
-      `%%styled-jsx-placeholder-${id}%%`
+    .replace(
+      /var\(--styled-jsx-placeholder-(\d+)\)/g,
+      (_,id) => `%%styled-jsx-placeholder-${id}%%`
+    )
+    .replace(
+      /\/\*%%styled-jsx-placeholder-(\d+)%%\*\//g, 
+      (_, id) => `%%styled-jsx-placeholder-${id}%%`
     )
 }
